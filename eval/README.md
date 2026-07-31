@@ -84,13 +84,13 @@ python eval/run_qualitative.py --run-id 003
 
 | Nhóm | Số case | Layer / source |
 |---|---|---|
-| Thường (happy path) | 14 | `normal` |
+| Thường (happy path) | 17 | `normal` |
 | Lớp ① Nguồn sự thật | 2 | `1` |
 | Lớp ② Mơ hồ | 3 | `2` |
 | Lớp ③ Ngoài phạm vi | 4 | `3` |
 | Lớp ④ Domain | 2 | `4` |
-| Edge | 3 | `edge` |
-| Quan sát thực tế | 10 | `self-test` (8) + `chatlog-derived` (2) |
+| Edge | 2 | `edge` |
+| Quan sát thực tế *(chồng lên các nhóm trên)* | 10 | `self-test` (8) + `chatlog-derived` (2) — pattern từ demo nội bộ & self-test, không phải 10 chatlog nguyên văn |
 
 ## Nhịp lặp (02-guide §4.1)
 

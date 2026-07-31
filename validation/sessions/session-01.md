@@ -1,7 +1,7 @@
-# Phiên validation #1 — _[điền tên]_
+# Phiên validation #1 — Đại Quân
 
 **Ngày / giờ:** 2026-07-31 · ~10:15  
-**Người quan sát:** nhóm Chicken Farmers  
+**Người quan sát:** nhóm ChickenFarmers  
 **Willing user CP1?** ☑ Có  
 **Thời lượng:** ~11 phút
 

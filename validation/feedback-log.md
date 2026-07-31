@@ -1,7 +1,7 @@
 # Feedback log — CP5 Validation
 
 **Sản phẩm:** FoodFlow · đặt món qua chat  
-**Người ghi log:** nhóm Chicken Farmers (phân công validation)  
+**Người ghi log:** nhóm ChickenFarmers (phân công validation)  
 **Ngày test:** 2026-07-31
 
 ## Bảng tổng hợp *(≥5 dòng — mỗi người một dòng)*
@@ -36,7 +36,7 @@ Multi-turn mất ngữ cảnh giỏ hàng (bot báo giỏ trống sau khi vừa 
 2. Thêm 1 dòng gợi ý phương thức thanh toán mặc định (COD) khi user nói "xác nhận đặt hàng".
 
 **Giữ nguyên có lý do:**  
-Hỏi lại khi input mơ hồ ("món đó") — 2/5 user chấp nhận vì tin hơn bot đoán bừa. Từ chối jailbreak + không chốt đơn khi thiếu SĐT/địa chỉ — không ai phản đối.
+Hỏi lại khi input mơ hồ ("món đó") — phiên #3 chấp nhận trade-off (tin hơn bot đoán bừa); các phiên khác không test pattern này. Từ chối jailbreak + không chốt đơn khi thiếu SĐT/địa chỉ — không ai phản đối (phiên #4, eval Q-06).
 
 **Đưa vào backlog (slide 6 — nếu có thêm 1 tuần):**  
 Lưu lịch sử chat cho LLM (fix session context) · hiển thị mã món chỉ khi user hỏi · tích hợp ShopeeFood thật · rút gọn menu dài theo category.
@@ -47,6 +47,6 @@ Lưu lịch sử chat cho LLM (fix session context) · hiển thị mã món ch�
 
 | Người | Quote | Dùng slide |
 |---|---|---|
-| _[điền tên]_ / Học viên E401 | *"Giá thì có vẻ đúng vì nó ghi rõ tên món, nhưng chưa dám chốt vì sợ đặt nhầm."* | Slide 5 — tin có điều kiện |
-| _[điền tên]_ / Học viên E403 | *"Hơi phiền phải nói lại tên món, nhưng ít nhất nó không tự bịa món."* | Slide 5 — trade-off hỏi lại |
-| _[điền tên]_ / Zone E402 đổi chéo | *"Xem giỏ thì trống — chắc do mình gõ sai nhưng cũng không biết phải gõ sao cho đúng."* | Slide 6 backlog UX |
+| Đại Quân / Học viên E402 · willing CP1 | *"Giá thì có vẻ đúng vì nó ghi rõ tên món, nhưng chưa dám chốt vì sợ đặt nhầm."* | Slide 5 — tin có điều kiện |
+| Nguyễn Phú Quang / Học viên E402 | *"Hơi phiền phải nói lại tên món, nhưng ít nhất nó không tự bịa món."* | Slide 5 — trade-off hỏi lại |
+| Nguyễn Hoàng Gia Bảo / Học viên E402 | *"Xem giỏ thì trống — chắc do mình gõ sai nhưng cũng không biết phải gõ sao cho đúng."* | Slide 6 backlog UX |

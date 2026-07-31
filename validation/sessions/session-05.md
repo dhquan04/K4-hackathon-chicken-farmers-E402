@@ -1,8 +1,8 @@
-# Phiên validation #5 — _[điền tên]_
+# Phiên validation #5 — Nguyễn Hoàng Gia Bảo
 
 **Ngày / giờ:** 2026-07-31 · ~11:40  
-**Người quan sát:** nhóm Chicken Farmers  
-**Willing user CP1?** ☐ Không (đổi chéo E402 nhóm khác)  
+**Người quan sát:** nhóm ChickenFarmers  
+**Willing user CP1?** ☐ Không (học viên E402, ngoài nhóm)  
 **Thời lượng:** ~8 phút (dừng sớm)
 
 ## Task đã giao

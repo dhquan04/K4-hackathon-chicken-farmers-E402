@@ -11,11 +11,11 @@ validation/
 ├── willing-users.md       ← ≥3 willing user đã khai CP1
 └── sessions/              ← ghi chi tiết từng phiên
     ├── _template.md
-    ├── session-01.md      ← willing E401 · giỏ trống multi-turn
-    ├── session-02.md      ← willing Ocean Park · menu + giá
-    ├── session-03.md      ← đổi chéo E403 · "món đó"
-    ├── session-04.md      ← giờ nghỉ · jailbreak
-    └── session-05.md      ← đổi chéo E402 · FOOD001
+    ├── session-01.md      ← Đại Quân · willing E402 · giỏ trống multi-turn
+    ├── session-02.md      ← Trần Kiên · willing E402 · menu + giá
+    ├── session-03.md      ← Nguyễn Phú Quang · E402 · "món đó"
+    ├── session-04.md      ← Trần Tuấn Linh · giờ nghỉ · jailbreak
+    └── session-05.md      ← Nguyễn Hoàng Gia Bảo · E402 · FOOD001
 ```
 
 ## Quy trình nhanh (10 phút/người)
@@ -31,10 +31,10 @@ validation/
 
 ## Tiêu chí rubric R6
 
-| Yêu cầu | File |
-|---|---|
-| ≥5 mẩu, ≥5 người ngoài nhóm, quote nguyên văn + tên/vai | `feedback-log.md` |
-| ≥2 willing user đã khai CP1 | `willing-users.md` |
-| ≥1 thay đổi từ feedback hoặc lý do giữ nguyên | `spec.md` §9 |
+| Yêu cầu | File | Trạng thái |
+|---|---|---|
+| ≥5 mẩu, ≥5 người ngoài nhóm, quote nguyên văn + tên/vai | `feedback-log.md` | ✅ 5 phiên |
+| ≥2 willing user đã khai CP1 | `willing-users.md` | ✅ #1, #2 |
+| ≥1 thay đổi từ feedback hoặc lý do giữ nguyên | `spec.md` §9 | ✅ Changelog |
 
 *Nếu mọi phản hồi đều khen — giao task khó hơn hoặc đổi người thử.*
