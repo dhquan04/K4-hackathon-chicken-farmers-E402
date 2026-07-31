@@ -1,0 +1,101 @@
+# FoodFlow — tool declarations cho trợ lý đặt món.
+# Giữ tên tool đồng bộ với:
+#   file này  ->  workflow.py (SUPPORTED_TOOLS)  ->  tools/*.py
+#
+# Agent chỉ được gọi đúng 6 tool dưới đây. Mọi dữ liệu món, giá, giỏ, đơn
+# phải lấy qua tool — không tự bịa.
+
+tools:
+  # ---------------- Core tools ----------------
+
+  - name: search_food
+    description: "Tìm món ăn theo từ khóa, mức giá tối đa, món chay hoặc độ cay.
+      Dùng khi user muốn tìm món cụ thể: 'tìm phở', 'có món gà không', 'món chay dưới 50k'.
+      Có thể kết hợp query rỗng với is_vegetarian=true để liệt kê món chay.
+      KHÔNG dùng khi user chỉ muốn xem toàn bộ menu theo danh mục — dùng get_menu.
+      KHÔNG tự bịa mã món (FOOD001...) hoặc giá — chỉ dùng id/giá từ kết quả tool."
+    parameters:
+      type: object
+      properties:
+        query: {type: string, default: "", description: "Từ khóa tìm kiếm (tên món, loại: gà, phở, bún, trà...)"}
+        max_price: {type: number, default: null, description: "Giá tối đa (VNĐ), ví dụ 50000"}
+        is_vegetarian: {type: boolean, default: null, description: "true = chỉ món chay, false = chỉ món mặn"}
+        is_spicy: {type: boolean, default: null, description: "true = chỉ món cay, false = không cay"}
+      required: [query]
+
+  - name: get_menu
+    description: "Xem thực đơn toàn bộ hoặc theo danh mục.
+      Dùng khi user hỏi 'xem menu', 'có món gì', 'danh sách món', 'menu món Cơm/Phở/Bún'.
+      category có thể là: Cơm, Phở, Bún, Món chay, Đồ uống, Ăn vặt (không phân biệt hoa thường).
+      KHÔNG dùng khi user tìm theo từ khóa cụ thể hoặc bộ lọc giá/chay/cay — dùng search_food."
+    parameters:
+      type: object
+      properties:
+        category: {type: string, default: "", description: "Danh mục món; để trống = toàn bộ thực đơn"}
+      required: []
+
+  - name: manage_cart
+    description: "Quản lý giỏ hàng: xem, thêm, sửa số lượng, xóa món hoặc làm trống giỏ.
+      action=view: xem giỏ hiện tại.
+      action=add: thêm món (cần item_id, quantity tùy chọn, note tùy chọn).
+      action=update: đổi số lượng/ghi chú (cần item_id, quantity; quantity<=0 sẽ xóa món).
+      action=remove: xóa một món (cần item_id).
+      action=clear: xóa sạch giỏ.
+      item_id lấy từ kết quả search_food/get_menu (ví dụ FOOD001).
+      KHÔNG dùng để tính tổng tiền — dùng calculate_order.
+      KHÔNG dùng để tạo đơn — dùng create_order sau khi user xác nhận."
+    parameters:
+      type: object
+      properties:
+        action: {type: string, enum: [view, add, update, remove, clear], default: "view", description: "Thao tác giỏ hàng"}
+        item_id: {type: string, default: "", description: "Mã món (FOOD001, FOOD010...)"}
+        quantity: {type: integer, default: 1, description: "Số lượng (add/update)"}
+        note: {type: string, default: "", description: "Ghi chú món (vd: ít đường, không hành)"}
+      required: [action]
+
+  - name: calculate_order
+    description: "Tính tạm tính, phí giao hàng, giảm giá voucher và tổng thanh toán của giỏ hiện tại.
+      Dùng khi user hỏi 'tính tiền', 'tổng bao nhiêu', 'thanh toán bao nhiêu', hoặc muốn áp voucher trước khi đặt.
+      voucher_code ví dụ: BATCH03, HELLOGROUP9, FREESHIP.
+      KHÔNG dùng khi giỏ trống mà chưa gợi ý user chọn món.
+      KHÔNG dùng để tạo đơn — chỉ tính toán; tạo đơn dùng create_order."
+    parameters:
+      type: object
+      properties:
+        voucher_code: {type: string, default: "", description: "Mã giảm giá (nếu có)"}
+        shipping_distance_km: {type: number, default: 2.0, description: "Khoảng cách giao hàng (km)"}
+      required: []
+
+  - name: create_order
+    description: "Tạo đơn hàng chính thức từ giỏ hiện tại. Hành động KHÔNG THỂ hoàn tác dễ dàng.
+      PHẢI có xác nhận rõ ràng của user trước khi gọi: 'Xác nhận đặt hàng', 'Chốt đơn', 'Đồng ý đặt'.
+      confirmed=true CHỈ khi user đã xác nhận trong lượt hiện tại.
+      Cần đủ: customer_name, phone_number (10 số, bắt đầu 0), delivery_address.
+      payment_method: COD (mặc định), MOMO, ZALOPAY, BANK_TRANSFER.
+      Kiểm tra giỏ không trống trước khi gọi.
+      KHÔNG gọi khi user mới nói 'đặt món'/'tạo đơn' mà chưa xác nhận — hỏi lại và tóm tắt đơn trước.
+      KHÔNG tự ý hủy đơn — không có tool hủy trong phạm vi hỗ trợ."
+    parameters:
+      type: object
+      properties:
+        confirmed: {type: boolean, default: false, description: "Cờ xác nhận — true chỉ sau khi user đồng ý rõ ràng"}
+        customer_name: {type: string, default: "", description: "Họ tên người nhận"}
+        phone_number: {type: string, default: "", description: "SĐT Việt Nam 10 chữ số, vd: 0912345678"}
+        delivery_address: {type: string, default: "", description: "Địa chỉ giao hàng chi tiết"}
+        payment_method: {type: string, enum: [COD, MOMO, ZALOPAY, BANK_TRANSFER], default: "COD", description: "Phương thức thanh toán"}
+        note: {type: string, default: "", description: "Ghi chú chung cho đơn (gọi khi tới, giao giờ hành chính...)"}
+        voucher_code: {type: string, default: "", description: "Mã giảm giá áp dụng (nếu có)"}
+        shipping_distance_km: {type: number, default: 2.0, description: "Khoảng cách giao hàng (km)"}
+      required: [customer_name, phone_number, delivery_address]
+
+  - name: track_order
+    description: "Tra cứu trạng thái đơn hàng bằng mã đơn (vd: ORD-10942).
+      Dùng khi user hỏi 'theo dõi đơn', 'đơn đang ở đâu', 'trạng thái đơn ORD-xxxxx'.
+      Trả về: PREPARING, DELIVERING, COMPLETED, CANCELLED...
+      KHÔNG dùng khi chưa có order_id — hỏi user cung cấp mã đơn trước.
+      KHÔNG dùng để tạo đơn mới — dùng create_order."
+    parameters:
+      type: object
+      properties:
+        order_id: {type: string, default: "", description: "Mã đơn hàng, vd: ORD-10942"}
+      required: [order_id]
