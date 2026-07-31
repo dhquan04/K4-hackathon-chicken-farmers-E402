@@ -8,6 +8,8 @@ Bộ kiểm thử kiểm chứng **4 giả thuyết MVP** theo 3 loại test:
 | **Quantitative** | `golden_set.json` | 30 case CP3 — đo intent + workflow + `expected_response` | **≥80%**; **0 fail D1** |
 | **Qualitative** | `qualitative/scenarios.md` | 6 scenario multi-turn, chấm tay D1–D4 | **≥4/6 scenario pass** |
 
+Chi tiết điền form CP5: [`CP5-nop.md`](CP5-nop.md)
+
 Chi tiết giả thuyết: [`mvp_hypotheses.md`](mvp_hypotheses.md)  
 Chiều chất lượng: [`quality_dimensions.md`](quality_dimensions.md)
 
@@ -64,6 +66,9 @@ python eval/run_eval.py --all --run-id 001
 
 # Xem hướng dẫn qualitative
 python eval/run_eval.py --qualitative
+
+# Qualitative — chạy 6 scenario qua agent + scorecard heuristic (CP5)
+python eval/run_qualitative.py --run-id 003
 ```
 
 ## Map rubric hackathon
