@@ -1,7 +1,7 @@
-# Phiên validation #2 — _[điền tên]_
+# Phiên validation #2 — Trần Kiên
 
 **Ngày / giờ:** 2026-07-31 · ~10:30  
-**Người quan sát:** nhóm Chicken Farmers  
+**Người quan sát:** nhóm ChickenFarmers  
 **Willing user CP1?** ☑ Có  
 **Thời lượng:** ~8 phút
 

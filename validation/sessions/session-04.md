@@ -1,7 +1,7 @@
-# Phiên validation #4 — _[điền tên]_
+# Phiên validation #4 — Trần Tuấn Linh
 
 **Ngày / giờ:** 2026-07-31 · ~11:20  
-**Người quan sát:** nhóm Chicken Farmers  
+**Người quan sát:** nhóm ChickenFarmers  
 **Willing user CP1?** ☐ Không (học viên giờ nghỉ)  
 **Thời lượng:** ~7 phút
 

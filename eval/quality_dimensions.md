@@ -11,7 +11,7 @@
 
 ## Cách chấm
 
-- **Quantitative (máy):** D1/D4 một phần qua `workflow_assertion` trong `golden_set.json`; D1-D4 đầy đủ qua qualitative.
+- **Quantitative (máy):** D1/D4 một phần qua `workflow_assertion` trong `golden_set.json`; case không có assertion (vd. #12, #13) chỉ pass intent — D1 đầy đủ qua qualitative.
 - **Qualitative (người):** Dùng `qualitative/scorecard_template.md`; 2 thành viên chấm độc lập scenario khó (Q-03, Q-04), so kết quả.
 
 ## Case pass tổng thể

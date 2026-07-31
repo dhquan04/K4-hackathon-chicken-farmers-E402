@@ -1,6 +1,6 @@
 # CP3 — Thông tin nộp form (copy vào Google Form)
 
-**Nhóm:** Chicken Farmers · Zone E402  
+**Nhóm:** ChickenFarmers · Zone E402  
 **Chạy eval:** `python eval/run_eval.py --all --run-id 001`  
 
 Artifact đối chiếu: `golden_set.json` · `runs/run-001.md` · `spec.md` §7
@@ -11,7 +11,7 @@ Artifact đối chiếu: `golden_set.json` · `runs/run-001.md` · `spec.md` §7
 
 **Copy 1 câu:**
 
-> AI quyết định **gọi tool nào** trong 6 chức năng đặt món (tìm món, menu, giỏ, tính tiền, tạo đơn, tra đơn) từ câu chat tiếng Việt — lượt đo CP3 chạy **workflow rule-based** (`detect_intent`); khi có API key dùng **gpt-4.0-mini** qua `agent.py`.
+> AI quyết định **gọi tool nào** trong 6 chức năng đặt món (tìm món, menu, giỏ, tính tiền, tạo đơn, tra đơn) từ câu chat tiếng Việt — lượt đo CP3 chạy **workflow rule-based** (`detect_intent`); khi có API key dùng **gpt-4o-mini** qua `agent.py`.
 
 ---
 
@@ -36,7 +36,9 @@ File: `eval/golden_set.json`
 
 ## Câu 4 — Số câu bắt nguồn từ quan sát thực tế
 
-**10** (8 self-test khi nhóm tự thử + 2 chatlog-derived)
+**10** (8 self-test khi nhóm tự thử + 2 chatlog-derived từ pattern demo nội bộ)
+
+*Nguồn: quan sát thực tế khi self-test / demo — không phải 10 chatlog nguyên văn từ user production.*
 
 | ID | Nguồn | source_ref (rút gọn) |
 |---|---|---|

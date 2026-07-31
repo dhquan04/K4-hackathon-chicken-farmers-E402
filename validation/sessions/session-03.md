@@ -1,8 +1,8 @@
-# Phiên validation #3 — _[điền tên]_
+# Phiên validation #3 — Nguyễn Phú Quang
 
 **Ngày / giờ:** 2026-07-31 · ~11:00  
-**Người quan sát:** nhóm Chicken Farmers  
-**Willing user CP1?** ☐ Không (đổi chéo zone E403)  
+**Người quan sát:** nhóm ChickenFarmers  
+**Willing user CP1?** ☐ Không (học viên E402, ngoài nhóm)  
 **Thời lượng:** ~9 phút
 
 ## Task đã giao
