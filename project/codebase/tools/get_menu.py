@@ -20,16 +20,16 @@ def get_menu(category: Optional[str] = None) -> Dict:
     """
     all_items = get_all_menu_items()
 
-    if category:
+    if category and category.strip():
         category_clean = category.strip().lower()
         filtered_items = [
             item for item in all_items
-            if item.category.lower() == category_clean
+            if category_clean in item.category.lower()
         ]
     else:
         filtered_items = all_items
 
-    categories_available = list(set(item.category for item in all_items))
+    categories_available = sorted(list(set(item.category for item in all_items)))
 
     if not filtered_items:
         return {

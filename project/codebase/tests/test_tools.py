@@ -36,7 +36,7 @@ class TestFoodOrderingTools(unittest.TestCase):
         com_result = get_menu(category="Cơm")
         self.assertEqual(com_result["status"], "success")
         for item in com_result["items"]:
-            self.assertEqual(item["category"], "Cơm")
+            self.assertIn("cơm", item["category"].lower())
 
     def test_search_food(self):
         res = search_food(query="phở")
@@ -71,13 +71,13 @@ class TestFoodOrderingTools(unittest.TestCase):
         self.assertEqual(res4["cart"]["total_items"], 1)
 
     def test_calculate_and_create_order(self):
-        # Add item to cart
-        add_to_cart(self.session_id, "FOOD001", quantity=2)  # 2 x 55k = 110k
+        # Add item to cart (FOOD001 is 65k x 2 = 130k)
+        add_to_cart(self.session_id, "FOOD001", quantity=2)
 
         # Calculate totals with voucher
         calc = calculate_order(self.session_id, voucher_code="BATCH03", shipping_distance_km=3.0)
         self.assertEqual(calc["status"], "success")
-        self.assertEqual(calc["subtotal"], 110000.0)
+        self.assertEqual(calc["subtotal"], 130000.0)
         self.assertGreater(calc["discount_amount"], 0)
 
         # Create order

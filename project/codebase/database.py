@@ -1,9 +1,11 @@
 """
 In-Memory Database & Data Store Manager for Food Ordering Chatbot
+Data Source: ShopeeFood Full Details Dataset (shopeefood_full_details.json)
 """
 
 import json
 import os
+import re
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -25,33 +27,120 @@ ORDERS_DB: Dict[str, Order] = {}
 VOUCHERS_DB: Dict[str, Voucher] = {}
 RESTAURANT_INFO_CACHE: Optional[RestaurantInfo] = None
 
-MENU_FILE_PATH = os.path.join(os.path.dirname(__file__), "data", "menu.json")
-RESTAURANT_FILE_PATH = os.path.join(os.path.dirname(__file__), "data", "restaurant.json")
+# Dataset Path Resolution
+BASE_DIR = os.path.dirname(__file__)
+SHOPEEFOOD_FILE_PATH = os.path.join(BASE_DIR, "data", "shopeefood_full_details.json")
+ROOT_DATA_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "data", "shopeefood_full_details.json"))
+
+
+def _get_data_file_path() -> str:
+    if os.path.exists(SHOPEEFOOD_FILE_PATH):
+        return SHOPEEFOOD_FILE_PATH
+    if os.path.exists(ROOT_DATA_PATH):
+        return ROOT_DATA_PATH
+    return SHOPEEFOOD_FILE_PATH
+
+
+def parse_price(price_val) -> float:
+    """Converts price string like '65.000đ' or '65000' to float."""
+    if isinstance(price_val, (int, float)):
+        return float(price_val)
+    if not price_val:
+        return 0.0
+    clean = str(price_val).replace("đ", "").replace(".", "").replace(",", "").strip()
+    try:
+        return float(clean)
+    except ValueError:
+        return 0.0
+
+
+def load_data_from_shopeefood() -> Tuple[Dict[str, MenuItem], Optional[RestaurantInfo]]:
+    """Loads food menu and restaurant branches from ShopeeFood dataset into MENU_DB and RESTAURANT_INFO_CACHE."""
+    global MENU_DB, RESTAURANT_INFO_CACHE
+    
+    file_path = _get_data_file_path()
+    if not os.path.exists(file_path):
+        return MENU_DB, RESTAURANT_INFO_CACHE
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        restaurants_data = json.load(f)
+
+    MENU_DB.clear()
+    branches: List[RestaurantBranch] = []
+    
+    dish_idx = 1
+    for r_idx, r in enumerate(restaurants_data, 1):
+        res_name = r.get("name", f"Nhà hàng {r_idx}")
+        res_addr = r.get("address", "Hà Nội")
+        res_url = r.get("url", "https://shopeefood.vn")
+        
+        branch_id = f"BRANCH{r_idx:02d}"
+        
+        branch = RestaurantBranch(
+            branch_id=branch_id,
+            branch_name=res_name,
+            address=res_addr,
+            latitude=20.9950 + (r_idx * 0.001),
+            longitude=105.9550 + (r_idx * 0.001),
+            google_maps_url=f"https://www.google.com/maps/search/?api=1&query={res_addr}",
+            embed_map_url=res_url,
+            is_active=True
+        )
+        branches.append(branch)
+
+        for menu_cat in r.get("menu", []):
+            cat_name = menu_cat.get("category", "Món ăn").strip()
+            for dish in menu_cat.get("dishes", []):
+                d_name = dish.get("dish_name", "").strip()
+                if not d_name:
+                    continue
+                    
+                price = parse_price(dish.get("price"))
+                desc = dish.get("description", "").strip()
+                is_avail = dish.get("is_available", True)
+                
+                lower_text = f"{d_name} {desc} {cat_name}".lower()
+                is_veg = "chay" in lower_text
+                is_spicy = any(k in lower_text for k in ["cay", "ớt", "kim chi", "lẩu thái", "sốt cay"])
+
+                item_id = f"FOOD{dish_idx:03d}"
+                menu_item = MenuItem(
+                    id=item_id,
+                    name=d_name,
+                    category=cat_name,
+                    price=price,
+                    description=desc if desc else f"{d_name} tại {res_name}",
+                    is_vegetarian=is_veg,
+                    is_spicy=is_spicy,
+                    allergens=[],
+                    is_available=is_avail
+                )
+                MENU_DB[item_id] = menu_item
+                dish_idx += 1
+
+    RESTAURANT_INFO_CACHE = RestaurantInfo(
+        restaurant_name="Hệ thống Quán ăn ShopeeFood Ocean Park",
+        hotline="1900 1234",
+        opening_hours="08:00 - 22:00",
+        branches=branches
+    )
+
+    return MENU_DB, RESTAURANT_INFO_CACHE
 
 
 def load_menu() -> Dict[str, MenuItem]:
-    """Loads food menu from JSON file into MENU_DB."""
+    """Loads food menu from dataset."""
     global MENU_DB
-    if not os.path.exists(MENU_FILE_PATH):
-        return MENU_DB
-
-    with open(MENU_FILE_PATH, "r", encoding="utf-8") as f:
-        items_data = json.load(f)
-        for data in items_data:
-            item = MenuItem(**data)
-            MENU_DB[item.id] = item
+    if not MENU_DB:
+        load_data_from_shopeefood()
     return MENU_DB
 
 
 def load_restaurant_info() -> Optional[RestaurantInfo]:
-    """Loads restaurant and branch info from JSON file."""
+    """Loads restaurant and branch info from dataset."""
     global RESTAURANT_INFO_CACHE
-    if not os.path.exists(RESTAURANT_FILE_PATH):
-        return None
-
-    with open(RESTAURANT_FILE_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        RESTAURANT_INFO_CACHE = RestaurantInfo(**data)
+    if not RESTAURANT_INFO_CACHE:
+        load_data_from_shopeefood()
     return RESTAURANT_INFO_CACHE
 
 
@@ -85,7 +174,7 @@ def get_menu_item_by_id(item_id: str) -> Optional[MenuItem]:
     """Finds menu item by ID."""
     if not MENU_DB:
         load_menu()
-    return MENU_DB.get(item_id)
+    return MENU_DB.get(item_id.upper())
 
 
 def get_restaurant_data() -> Optional[RestaurantInfo]:
@@ -126,7 +215,7 @@ def update_cart_item(session_id: str, item_id: str, quantity: int, note: str = "
         return False, f"Món '{item.name}' hiện đã hết hàng.", cart
 
     # Find existing item in cart
-    existing = next((i for i in cart.items if i.item_id == item_id), None)
+    existing = next((i for i in cart.items if i.item_id.upper() == item_id.upper()), None)
 
     if quantity <= 0:
         if existing:
