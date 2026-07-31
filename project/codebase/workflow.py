@@ -126,6 +126,49 @@ def _run_tool(tool_name: str, session_id: str, kwargs: dict[str, Any]) -> dict[s
     raise ValueError("Tool không được hỗ trợ.")
 
 
+def run_tool_for_agent(
+    tool_name: str,
+    session_id: str,
+    kwargs: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Execute one tool for the LLM agent path (confirmation + error handling)."""
+    kwargs = dict(kwargs or {})
+
+    if tool_name not in SUPPORTED_TOOLS:
+        return {
+            "ok": False,
+            "tool": tool_name,
+            "message": OUT_OF_SCOPE_MESSAGE,
+            "data": {"status": "error", "message": "Tool không được hỗ trợ."},
+        }
+
+    if tool_name == "create_order" and not kwargs.pop("confirmed", False):
+        return {
+            "ok": False,
+            "tool": "create_order",
+            "needs_confirmation": True,
+            "message": "Bạn vui lòng xác nhận rõ: ‘Xác nhận đặt hàng’ trước khi mình tạo đơn.",
+            "data": {"status": "error", "message": "Chưa xác nhận đặt hàng."},
+        }
+
+    try:
+        data = _run_tool(tool_name, session_id, kwargs)
+    except (TypeError, ValueError, KeyError) as error:
+        return {
+            "ok": False,
+            "tool": tool_name,
+            "message": str(error),
+            "data": {"status": "error", "message": str(error)},
+        }
+
+    return {
+        "ok": data.get("status") != "error",
+        "tool": tool_name,
+        "message": data.get("message", "Đã xử lý yêu cầu của bạn."),
+        "data": data,
+    }
+
+
 def handle_message(
     user_id: str,
     message: str,

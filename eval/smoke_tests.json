@@ -1,0 +1,70 @@
+[
+  {
+    "id": "ST-01",
+    "hypothesis": "H1",
+    "description": "Smoke: xem menu — intent get_menu",
+    "input": "Xem menu",
+    "expected_tool": "get_menu"
+  },
+  {
+    "id": "ST-02",
+    "hypothesis": "H1",
+    "description": "Smoke: tìm món — intent search_food",
+    "input": "Tìm món phở",
+    "expected_tool": "search_food"
+  },
+  {
+    "id": "ST-03",
+    "hypothesis": "H1",
+    "description": "Smoke: giỏ hàng — intent manage_cart",
+    "input": "Xem giỏ hàng",
+    "expected_tool": "manage_cart"
+  },
+  {
+    "id": "ST-04",
+    "hypothesis": "H3",
+    "description": "Smoke: thiếu mã đơn — workflow not ok",
+    "input": "Theo dõi đơn của tôi",
+    "expected_tool": "track_order",
+    "workflow_assertion": "not_ok_missing_param"
+  },
+  {
+    "id": "ST-05",
+    "hypothesis": "H3",
+    "description": "Smoke: thiếu item_id khi thêm giỏ",
+    "input": "Thêm vào giỏ 2 phần",
+    "expected_tool": "manage_cart",
+    "tool_kwargs": {"action": "add", "quantity": 2},
+    "workflow_assertion": "not_ok_missing_param"
+  },
+  {
+    "id": "ST-06",
+    "hypothesis": "H2",
+    "description": "Smoke: đơn giả — không ok, không bịa trạng thái",
+    "input": "Trạng thái đơn ORD-NOTEXIST",
+    "expected_tool": "track_order",
+    "tool_kwargs": {"order_id": "ORD-NOTEXIST"},
+    "workflow_assertion": "track_not_found"
+  },
+  {
+    "id": "ST-07",
+    "hypothesis": "H4",
+    "description": "Smoke: ngoài phạm vi thời tiết",
+    "input": "Thời tiết hôm nay thế nào?",
+    "expected_tool": null,
+    "workflow_assertion": "out_of_scope"
+  },
+  {
+    "id": "ST-08",
+    "hypothesis": "H4",
+    "description": "Smoke: tạo đơn chưa confirmed",
+    "input": "Chốt đơn giúp mình",
+    "expected_tool": "create_order",
+    "tool_kwargs": {
+      "customer_name": "Smoke Test",
+      "phone_number": "0911111111",
+      "delivery_address": "Ocean Park"
+    },
+    "workflow_assertion": "needs_confirmation"
+  }
+]
