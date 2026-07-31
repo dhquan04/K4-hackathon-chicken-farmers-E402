@@ -33,6 +33,9 @@ try:
         ORDERS_DB,
         VOUCHERS_DB,
         parse_price,
+        normalize_text,
+        remove_accents,
+        get_order_by_id,
     )
     from project.codebase.tools.get_menu import get_menu
     from project.codebase.tools.search_food import search_food
@@ -49,6 +52,9 @@ except ImportError:
         ORDERS_DB,
         VOUCHERS_DB,
         parse_price,
+        normalize_text,
+        remove_accents,
+        get_order_by_id,
     )
     from tools.get_menu import get_menu
     from tools.search_food import search_food
@@ -492,6 +498,46 @@ def format_vnd(amount: float) -> str:
     return f"{int(amount):,}đ".replace(",", ".")
 
 
+def execute_add_item(item_id, item_name, item_price, qty=1, branch_id=None):
+    add_to_cart(session_id=st.session_state.session_id, item_id=item_id, quantity=qty)
+    item_branch = branch_id
+    if not item_branch and item_id in menu_db:
+        item_branch = getattr(menu_db[item_id], "branch_id", None)
+    dist_info = estimate_delivery_distance("Toà S2.06 Vinhomes Ocean Park, Gia Lâm, Hà Nội", branch_id=item_branch)
+
+    st.session_state.selected_dish_map_info = {
+        "item_name": item_name,
+        "item_price": item_price,
+        "dist_info": dist_info
+    }
+    st.session_state.active_view = "map"
+    st.toast(f"✅ Đã thêm '{item_name}' vào giỏ hàng!", icon="🛒")
+    st.rerun()
+
+
+def request_add_to_cart(item_obj, qty: int = 1):
+    current_cart = get_current_cart_items(st.session_state.session_id)
+    current_total = sum(ci.get("quantity", 1) for ci in current_cart)
+    
+    item_id = getattr(item_obj, "id", None) or getattr(item_obj, "item_id", None)
+    item_name = getattr(item_obj, "name", None) or getattr(item_obj, "item_name", "Món ăn")
+    item_price = getattr(item_obj, "price", 0)
+    branch_id = getattr(item_obj, "branch_id", None)
+
+    if current_total >= 5:
+        st.session_state.pending_add_item = {
+            "item_id": item_id,
+            "item_name": item_name,
+            "item_price": item_price,
+            "quantity": qty,
+            "current_total": current_total,
+            "branch_id": branch_id
+        }
+        st.rerun()
+    else:
+        execute_add_item(item_id, item_name, item_price, qty, branch_id)
+
+
 current_view = st.session_state.get("active_view", "dishes")
 
 if current_view == "map" and st.session_state.get("selected_dish_map_info"):
@@ -526,24 +572,24 @@ else:
     # --- UNIFIED TOP HEADER NAVIGATION BAR ---
     header_col1, header_col2, header_col3, header_col4 = st.columns([3.0, 3.2, 4.0, 1.8])
 
-    with header_col1:
-        st.markdown(
-            f"""
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:28px;">🍱</span>
-                <div>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="font-size:22px; font-weight:800; color:#FF5722; letter-spacing:-0.5px; line-height:1;">FoodFlow</span>
-                        <span class="status-badge {'status-online' if has_openmap else 'status-offline'}">
-                            {'🟢' if has_openmap else '⚪'} OpenMap
-                        </span>
-                    </div>
-                    <div style="font-size:9px; color:#868E96; font-weight:700; text-transform:uppercase; margin-top:2px;">ShopeeFood Ocean Park</div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    # with header_col1:
+    #     st.markdown(
+    #         f"""
+    #         <div style="display:flex; align-items:center; gap:8px;">
+    #             <span style="font-size:28px;">🍱</span>
+    #             <div>
+    #                 <div style="display:flex; align-items:center; gap:6px;">
+    #                     <span style="font-size:22px; font-weight:800; color:#FF5722; letter-spacing:-0.5px; line-height:1;">FoodFlow</span>
+    #                     <span class="status-badge {'status-online' if has_openmap else 'status-offline'}">
+    #                         {'🟢' if has_openmap else '⚪'} OpenMap
+    #                     </span>
+    #                 </div>
+    #                 <div style="font-size:9px; color:#868E96; font-weight:700; text-transform:uppercase; margin-top:2px;">ShopeeFood Ocean Park</div>
+    #             </div>
+    #         </div>
+    #         """,
+    #         unsafe_allow_html=True
+    #     )
 
     with header_col2:
         st.markdown(
@@ -705,26 +751,7 @@ else:
                         b1, b2 = st.columns([1, 1])
                         with b1:
                             if st.button("➕ Giỏ hàng", key=f"add_cart_{item.id}_{i}_{idx}"):
-                                res = add_to_cart(
-                                    session_id=st.session_state.session_id,
-                                    item_id=item.id,
-                                    quantity=1
-                                )
-                                item_branch = getattr(item, "branch_id", None)
-                                if not item_branch and getattr(item, "id", None) in menu_db:
-                                    item_branch = getattr(menu_db[item.id], "branch_id", None)
-                                dist_info = estimate_delivery_distance("Toà S2.06 Vinhomes Ocean Park, Gia Lâm, Hà Nội", branch_id=item_branch)
-
-                                st.session_state.selected_dish_map_info = {
-                                    "item_name": item.name,
-                                    "item_price": item.price,
-                                    "dist_info": dist_info
-                                }
-
-
-                                st.session_state.active_view = "map"
-                                st.toast(f"✅ Đã thêm '{item.name}' vào giỏ hàng!", icon="🛒")
-                                st.rerun()
+                                request_add_to_cart(item, 1)
                         with b2:
                             if st.button("💬 Hỏi AI", key=f"ask_ai_{item.id}_{i}_{idx}"):
                                 prompt_msg = f"Tư vấn cho mình về món '{item.name}' giá {price_str} xem có ngon không?"
@@ -734,25 +761,252 @@ else:
                                     session_id=st.session_state.session_id
                                 )
                                 ai_reply = res.get("ai_response") or res.get("message") or "Món này rất ngon và đậm đà!"
+                                engine = res.get("llm_engine", "AI Engine")
                                 st.session_state.chat_history.append({"role": "user", "content": prompt_msg})
-                                st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
-                                st.toast("🤖 OpenAI AI đã trả lời!", icon="💬")
+                                st.session_state.chat_history.append({"role": "assistant", "content": ai_reply, "engine": engine})
+                                st.toast("🤖 OpenAI AI đã trả lời! Xem tại Tab Trợ lý OpenAI.", icon="💬")
+                                st.rerun()
 
+
+
+
+
+
+def calculate_cart_nutrition_balance(cart_items: list) -> dict:
+    """
+    Calculates nutritional balance score (0.0 to 1.0) and missing nutrients from cart items' descriptions,
+    taking into account portion quantities, dedicated beverages/salads, and excessive portion sizes (>5 items).
+    """
+    if not cart_items:
+        return {
+            "score": 0.0,
+            "percentage": 0,
+            "has_carbs": False,
+            "has_protein": False,
+            "has_fiber": False,
+            "missing": ["Tinh bột", "Đạm", "Chất xơ & Vitamin"],
+            "status_label": "Giỏ hàng trống",
+            "suggestion": None
+        }
+
+    carbs_keywords = ("mỳ", "mì", "cơm", "bún", "phở", "bánh", "khoai", "yến mạch", "nui", "xôi", "bánh mì")
+    protein_keywords = ("thịt", "gà", "bò", "lợn", "trứng", "lạp sườn", "xúc xích", "xx", "nem", "tôm", "mực", "cá", "chả", "đậu", "giò", "surimi", "mazo", "viên", "bì", "pate", "paté")
+    fiber_keywords = ("rau", "củ", "dưa", "hành", "nấm", "xoài", "dưa hấu", "ổi", "cam", "chanh", "trà", "nước ép", "sinh tố", "hoa quả", "trái cây", "táo", "đào", "xà lách", "cà chua", "bắp cải", "su su", "súp lơ")
+    drink_fruit_keywords = ("dưa hấu", "ổi", "cam", "chanh", "trà", "nước ép", "sinh tố", "hoa quả", "trái cây", "táo", "đào", "nước", "xà lách", "rau củ")
+
+    main_carbs_count = 0
+    protein_count = 0
+    fiber_points = 0.0
+    drink_fruit_count = 0
+    total_qty = 0
+
+    for ci in cart_items:
+        item_id = ci.get("item_id") or ci.get("id")
+        name = ci.get("item_name") or ci.get("name") or ""
+        desc = ci.get("description", "")
+        category = ci.get("category", "")
+        qty = ci.get("quantity", 1)
+        total_qty += qty
+
+        if item_id and item_id in menu_db:
+            m_item = menu_db[item_id]
+            desc = getattr(m_item, "description", "") or desc
+            category = getattr(m_item, "category", "") or category
+        elif name:
+            for m_item in menu_db.values():
+                if m_item.name.lower() in name.lower() or name.lower() in m_item.name.lower():
+                    desc = getattr(m_item, "description", "") or desc
+                    category = getattr(m_item, "category", "") or category
+                    break
+
+        item_text = f"{name} {category} {desc}".lower()
+
+        is_main_carb = any(k in item_text for k in carbs_keywords)
+        if is_main_carb:
+            main_carbs_count += qty
+
+        if any(k in item_text for k in protein_keywords):
+            protein_count += qty
+
+        is_dedicated_drink_fiber = any(k in item_text for k in drink_fruit_keywords) and not is_main_carb
+        if is_dedicated_drink_fiber:
+            drink_fruit_count += qty
+            fiber_points += (1.0 * qty)
+        elif any(k in item_text for k in fiber_keywords):
+            fiber_points += (0.5 * qty)
+
+    has_carbs = main_carbs_count > 0
+    has_protein = protein_count > 0
+    has_fiber = fiber_points > 0
+
+    # 1. Base Score from group presence (0 to 60 points)
+    groups_present = sum([has_carbs, has_protein, has_fiber])
+    base_points = groups_present * 20.0  # 20, 40, 60
+
+    # 2. Ratio & Harmony Score (0 to 40 points)
+    if main_carbs_count > 0:
+        protein_ratio = min(1.0, protein_count / float(main_carbs_count))
+        fiber_ratio = min(1.0, fiber_points / float(main_carbs_count))
+        harmony_points = (protein_ratio * 20.0) + (fiber_ratio * 20.0)
+    else:
+        protein_ratio = min(1.0, protein_count / 2.0)
+        fiber_ratio = min(1.0, fiber_points / 2.0)
+        harmony_points = (protein_ratio * 20.0) + (fiber_ratio * 20.0)
+
+    # 3. Carb Overload Penalty
+    penalty = 0.0
+    if main_carbs_count >= 2 and drink_fruit_count == 0:
+        penalty = 25.0
+
+    total_score = min(1.0, max(0.0, (base_points + harmony_points - penalty) / 100.0))
+    percentage = int(total_score * 100)
+
+    missing = []
+    if not has_carbs:
+        missing.append("Tinh bột (Mỳ/Bún/Cơm)")
+    if not has_protein:
+        missing.append("Đạm (Trứng/Thịt/Lạp sườn)")
+    if not has_fiber:
+        missing.append("Chất xơ & Vitamin (Rau củ / Nước ép)")
+
+    # SPECIAL HANDLING FOR EXCESSIVE ITEMS (>5 items)
+    if total_qty > 5:
+        if drink_fruit_count == 0:
+            percentage = 45
+            total_score = 0.45
+            status_label = f"🔴 Bữa ăn quá nhiều món ({total_qty} món) & Thiếu Nước ép/Trà giải nhiệt"
+            suggestion = f"💡 AI Gợi ý: Bữa ăn có tới **{total_qty} món** (Khẩu phần rất lớn, dễ ngấy)! Bấm để nhờ Trợ lý OpenAI gợi ý Nước ép hoa quả / Trà tươi giải nhiệt!"
+        elif fiber_points < main_carbs_count * 0.8:
+            percentage = 60
+            total_score = 0.60
+            status_label = f"🟡 Bữa ăn lớn ({total_qty} món) - Thiếu Rau củ & Vitamin cân bằng"
+            suggestion = f"💡 AI Gợi ý: Bữa ăn có **{total_qty} món**. Bấm để nhờ Trợ lý OpenAI gợi ý Salad / Rau củ tươi cân bằng khẩu phần!"
+        else:
+            percentage = min(90, percentage)
+            total_score = percentage / 100.0
+            status_label = f"🟢 Bữa ăn đa dạng ({total_qty} món) - Đã có nước ép giải nhiệt"
+            suggestion = f"💡 AI Gợi ý: Bữa ăn lớn ({total_qty} món). Bấm để nhờ Trợ lý OpenAI tối ưu thêm!"
+    elif percentage >= 95:
+        percentage = 100
+        total_score = 1.0
+        status_label = "🟢 Rất cân bằng dinh dưỡng (Đủ Tinh bột + Đạm + Vitamin)"
+        suggestion = None
+    elif percentage >= 75:
+        status_label = f"🟢 Khá cân bằng ({percentage}%) - {f'Nên chọn thêm {search_str}' if (search_str := ', '.join(missing)) else 'Nên thêm Nước ép / Trà tươi giải nhiệt'}"
+        suggestion = f"💡 AI Gợi ý: Giỏ hàng đạt {percentage}%. Bấm để nhờ Trợ lý OpenAI gợi ý {', '.join(missing) if missing else 'Nước ép giải nhiệt'} hoàn thiện 100%!"
+    elif percentage >= 50:
+        status_label = f"🟡 Cân bằng trung bình ({percentage}%) - {f'Thiếu {search_str}' if (search_str := ', '.join(missing)) else 'Khẩu phần nhiều Tinh bột'}"
+        suggestion = f"💡 AI Gợi ý: Giỏ hàng đạt {percentage}%. Bấm để nhờ Trợ lý OpenAI gợi ý món cân bằng dinh dưỡng!"
+    else:
+        status_label = f"🔴 Chưa cân bằng ({percentage}%) - Thiếu {', '.join(missing)}"
+        suggestion = f"💡 AI Gợi ý: Giỏ hàng chỉ đạt {percentage}%. Bấm để nhờ Trợ lý OpenAI gợi ý món cân bằng!"
+
+    return {
+        "score": total_score,
+        "percentage": percentage,
+        "total_qty": total_qty,
+        "has_carbs": has_carbs,
+        "has_protein": has_protein,
+        "has_fiber": has_fiber,
+        "main_carbs_count": main_carbs_count,
+        "protein_count": protein_count,
+        "fiber_points": fiber_points,
+        "drink_fruit_count": drink_fruit_count,
+        "missing": missing,
+        "status_label": status_label,
+        "suggestion": suggestion
+    }
 
 
 # === SIDEBAR WIDGETS: GIỎ HÀNG & TRỢ LÝ AI CHATBOT ===
 st.sidebar.markdown("### 🛒 Quản lý & 🤖 Trợ lý AI")
 
+# Check and render 5+ items confirmation modal dialog if pending
+if st.session_state.get("pending_add_item"):
+    pending = st.session_state.pending_add_item
+    
+    if hasattr(st, "dialog"):
+        @st.dialog("⚠️ Cảnh báo số lượng món ăn")
+        def render_confirm_dialog():
+            st.warning("⚠️ **Bữa ăn của bạn đang có quá nhiều món, bạn có muốn đặt nữa không?**")
+            st.markdown(f"🛒 Giỏ hàng hiện tại: **{pending['current_total']} món**")
+            st.markdown(f"🍲 Món muốn thêm: **{pending['item_name']}** (Số lượng: +{pending['quantity']})")
+            st.divider()
+            
+            c_yes, c_no = st.columns(2)
+            with c_yes:
+                if st.button("✅ Có (Thêm vào giỏ)", key="modal_btn_yes", use_container_width=True):
+                    item_id = pending["item_id"]
+                    item_name = pending["item_name"]
+                    item_price = pending["item_price"]
+                    qty = pending["quantity"]
+                    branch_id = pending["branch_id"]
+                    st.session_state.pending_add_item = None
+                    execute_add_item(item_id, item_name, item_price, qty, branch_id)
+            with c_no:
+                if st.button("❌ Không (Hủy bỏ)", key="modal_btn_no", use_container_width=True):
+                    st.session_state.pending_add_item = None
+                    st.toast("Đã hủy thêm món vào giỏ hàng.", icon="ℹ️")
+                    st.rerun()
+        render_confirm_dialog()
+    else:
+        st.sidebar.warning("⚠️ **Bữa ăn của bạn đang có quá nhiều món, bạn có muốn đặt nữa không?**")
+        st.sidebar.markdown(f"🛒 Giỏ hàng hiện tại: **{pending['current_total']} món**")
+        st.sidebar.markdown(f"🍲 Món muốn thêm: **{pending['item_name']}** (Số lượng: +{pending['quantity']})")
+        c_yes, c_no = st.sidebar.columns(2)
+        with c_yes:
+            if st.button("✅ Có", key="modal_fallback_yes", use_container_width=True):
+                item_id = pending["item_id"]
+                item_name = pending["item_name"]
+                item_price = pending["item_price"]
+                qty = pending["quantity"]
+                branch_id = pending["branch_id"]
+                st.session_state.pending_add_item = None
+                execute_add_item(item_id, item_name, item_price, qty, branch_id)
+        with c_no:
+            if st.button("❌ Không", key="modal_fallback_no", use_container_width=True):
+                st.session_state.pending_add_item = None
+                st.toast("Đã hủy thêm món vào giỏ hàng.", icon="ℹ️")
+                st.rerun()
+
 sidebar_tabs = st.sidebar.tabs(["🛒 Giỏ hàng", "🤖 Trợ lý OpenAI", "📦 Đơn hàng"])
 
 # TAB 1: GIỎ HÀNG (CART)
 with sidebar_tabs[0]:
-    st.write("#### Chi tiết giỏ hàng")
+    st.write("#### 🛒 Chi tiết giỏ hàng & Dinh dưỡng")
     cart_items = get_current_cart_items(st.session_state.session_id)
     
     if not cart_items:
         st.info("Giỏ hàng của bạn đang trống. Chọn món ăn ở danh sách để thêm vào giỏ!")
     else:
+        # Calculate & display nutrition balance progress bar
+        nutr_info = calculate_cart_nutrition_balance(cart_items)
+        st.progress(nutr_info["score"], text=f"📊 Cân bằng dinh dưỡng: **{nutr_info['percentage']}%**")
+        st.caption(nutr_info["status_label"])
+        
+        # If not 100% balanced, show AI suggestion button
+        if nutr_info["suggestion"]:
+            if st.button(nutr_info["suggestion"], key="btn_nutrition_ai_sug"):
+                cart_dish_names = [ci.get("item_name") or ci.get("name") or "Món ăn" for ci in cart_items]
+                missing_str = ", ".join(nutr_info["missing"])
+                prompt_msg = f"Giỏ hàng của mình đang có: {', '.join(cart_dish_names)}. Hiện tại bữa ăn đang thiếu {missing_str}. Tư vấn cho mình nên chọn thêm món gì từ thực đơn để bữa ăn đạt cân bằng dinh dưỡng tốt nhất?"
+                
+                # Execute agent query & update chat history
+                res = run_agent(
+                    user_id=st.session_state.user_id,
+                    message=prompt_msg,
+                    session_id=st.session_state.session_id,
+                    chat_history=st.session_state.chat_history
+                )
+                ai_text = res.get("ai_response") or res.get("message") or "Đã ghi nhận yêu cầu tư vấn dinh dưỡng!"
+                engine = res.get("llm_engine", "OpenAI Live Agent")
+                
+                st.session_state.chat_history.append({"role": "user", "content": prompt_msg})
+                st.session_state.chat_history.append({"role": "assistant", "content": ai_text, "engine": engine})
+                st.toast("🤖 Đã tư vấn xong! Hãy nhấp mở Tab 🤖 Trợ lý OpenAI để xem chi tiết.", icon="🥗")
+                st.rerun()
+
+        st.divider()
         for idx, ci in enumerate(cart_items):
             item_name = ci.get("item_name") or ci.get("name") or "Món ăn"
             price = ci.get("price", 0)
@@ -774,27 +1028,32 @@ with sidebar_tabs[0]:
         st.write(f"**Tạm tính:** {format_vnd(subtotal)}")
         
         voucher_input = st.text_input("Mã giảm giá (FREESHIP / BATCH03)", value="FREESHIP")
-        calc_res = calculate_order(session_id=st.session_state.session_id, voucher_code=voucher_input)
+        
+        st.markdown("##### Thông tin người nhận")
+        c_name = st.text_input("Họ và tên", value="Nguyễn Văn A")
+        c_phone = st.text_input("Số điện thoại", value="0987654321")
+        c_addr = st.text_input("Địa chỉ giao hàng", value="VinUniversity")
+        c_pay = st.selectbox("Phương thức thanh toán", ["COD (Tiền mặt)", "MOMO", "ZALOPAY", "BANK_TRANSFER"])
+
+        cart_branch = None
+        if cart_items:
+            first_item_id = cart_items[0].get("item_id") or cart_items[0].get("id")
+            if first_item_id and first_item_id in menu_db:
+                cart_branch = getattr(menu_db[first_item_id], "branch_id", None)
+        dist_info = estimate_delivery_distance(c_addr or "VinUniversity, Hà Nội", branch_id=cart_branch)
+        dist_km = dist_info.get("estimated_distance_km", 2.0)
+
+        calc_res = calculate_order(
+            session_id=st.session_state.session_id, 
+            voucher_code=voucher_input,
+            shipping_distance_km=dist_km
+        )
         
         if calc_res.get("status") == "success":
-            st.success(f"Khuyến mãi: -{format_vnd(calc_res.get('discount_amount', 0))}")
-            st.write(f"Phí giao hàng: {format_vnd(calc_res.get('delivery_fee', 0))}")
-            st.markdown(f"### Tổng thanh toán: **{format_vnd(calc_res.get('total', 0))}**")
-            
-            st.markdown("##### Thông tin người nhận")
-            c_name = st.text_input("Họ và tên", value="Nguyễn Văn A")
-            c_phone = st.text_input("Số điện thoại", value="0987654321")
-            c_addr = st.text_input("Địa chỉ giao hàng", value="Toà S2.06 Vinhomes Ocean Park, Gia Lâm, Hà Nội")
-            c_pay = st.selectbox("Phương thức thanh toán", ["COD (Tiền mặt)", "MOMO", "ZALOPAY", "BANK_TRANSFER"])
-
-            if c_addr:
-                cart_branch = None
-                if cart_items:
-                    first_item_id = cart_items[0].get("item_id") or cart_items[0].get("id")
-                    if first_item_id and first_item_id in menu_db:
-                        cart_branch = getattr(menu_db[first_item_id], "branch_id", None)
-                dist_info = estimate_delivery_distance(c_addr, branch_id=cart_branch)
-                st.caption(f"📍 Khoảng cách ({dist_info.get('distance_source', 'OpenMap')}): **{dist_info.get('estimated_distance_km')} km** ({dist_info.get('estimated_delivery_minutes')} phút)")
+            st.success(f"Khuyến mãi: -{calc_res.get('discount_amount_formatted', '0đ')}")
+            st.write(f"Phí giao hàng ({dist_km} km): {calc_res.get('shipping_fee_formatted', '0đ')}")
+            st.markdown(f"### Tổng thanh toán: **{calc_res.get('total_amount_formatted', '0đ')}**")
+            st.caption(f"📍 Khoảng cách ({dist_info.get('distance_source', 'OpenMap')}): **{dist_km} km** ({dist_info.get('estimated_delivery_minutes')} phút)")
 
             if st.button("🚀 ĐẶT HÀNG NGAY", key="btn_submit_order"):
                 order_res = create_order(
@@ -827,11 +1086,11 @@ with sidebar_tabs[0]:
                     st.error(order_res.get("message", "Đã có lỗi xảy ra khi tạo đơn hàng."))
 
         # Display Live Motorcycle Delivery Map on Order Placement
-        if st.session_state.latest_order_map_info:
-            map_data = st.session_state.latest_order_map_info
-            st.success(f"🎉 Đặt hàng thành công! Mã đơn: **{map_data.get('order_id')}**")
-            st.markdown("##### 🗺️ Bản đồ chỉ đường xe máy & Thời gian giao hàng")
-            render_delivery_route_map(map_data["dist_info"], map_data["customer_name"])
+        # if st.session_state.latest_order_map_info:
+        #     map_data = st.session_state.latest_order_map_info
+        #     st.success(f"🎉 Đặt hàng thành công! Mã đơn: **{map_data.get('order_id')}**")
+        #     st.markdown("##### 🗺️ Bản đồ chỉ đường xe máy & Thời gian giao hàng")
+        #     render_delivery_route_map(map_data["dist_info"], map_data["customer_name"])
 
         if st.button("🗑️ Xóa toàn bộ giỏ hàng", key="btn_clear_cart"):
             st.session_state.latest_order_map_info = None
@@ -841,39 +1100,59 @@ with sidebar_tabs[0]:
 
 # TAB 2: TRỢ LÝ AI CHATBOT (OPENAI LLM AGENT)
 with sidebar_tabs[1]:
-    st.write("#### Trợ lý OpenAI FoodFlow 🤖")
+    h_col1, h_col2 = st.columns([2.8, 1.2])
+    with h_col1:
+        st.write("#### Trợ lý OpenAI 🤖")
+    with h_col2:
+        if st.button("🗑️ Xóa chat", key="btn_clear_chat_hist"):
+            st.session_state.chat_history = [
+                {
+                    "role": "assistant",
+                    "content": "Xin chào! Mình là Trợ lý AI Capichi & FoodFlow 🍱. Bạn muốn ăn món gì hôm nay? Có thể hỏi mình gợi ý hoặc đặt món nhé!"
+                }
+            ]
+            st.rerun()
+
     st.caption("Tư vấn thực đơn bằng LLM, gợi ý món ăn, tìm mã giảm giá & tạo đơn tự động.")
 
+    # 1. Render all messages in chat history
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
-            st.write(msg["content"])
+            st.markdown(msg["content"])
+            if msg.get("engine"):
+                st.caption(f"Powered by: **{msg['engine']}**")
 
+    # 2. Suggestion action buttons
+    pending_prompt = None
     sug_c1, sug_c2 = st.columns(2)
     with sug_c1:
         if st.button("🍱 Gợi ý 100k", key="sug_1"):
-            st.session_state.chat_input_val = "Gợi ý cho mình thực đơn 2 người khoảng 100k"
+            pending_prompt = "Gợi ý cho mình thực đơn 2 người khoảng 100k"
     with sug_c2:
         if st.button("🎟️ Mã giảm giá", key="sug_2"):
-            st.session_state.chat_input_val = "Hôm nay có mã giảm giá gì hot không?"
+            pending_prompt = "Hôm nay có mã giảm giá gì hot không?"
 
-    user_input = st.chat_input("Nhập tin nhắn cho AI...")
-    if user_input:
-        st.session_state.chat_history.append({"role": "user", "content": user_input})
-        with st.chat_message("user"):
-            st.write(user_input)
-            
-        with st.chat_message("assistant"):
-            with st.spinner("OpenAI LLM đang phản hồi..."):
-                response = run_agent(
-                    user_id=st.session_state.user_id,
-                    message=user_input,
-                    session_id=st.session_state.session_id
-                )
-                ai_text = response.get("ai_response") or response.get("message") or "Đã ghi nhận yêu cầu của bạn!"
-                engine = response.get("llm_engine", "AI Engine")
-                st.write(ai_text)
-                st.caption(f"Powered by: **{engine}**")
-                st.session_state.chat_history.append({"role": "assistant", "content": ai_text})
+    # 3. Chat input field at the bottom
+    user_input = st.chat_input("Nhập tin nhắn cho AI...", key="sidebar_chat_input")
+    prompt_to_process = pending_prompt or user_input
+
+    if prompt_to_process:
+        st.session_state.chat_history.append({"role": "user", "content": prompt_to_process})
+        with st.spinner("OpenAI LLM đang phản hồi..."):
+            response = run_agent(
+                user_id=st.session_state.user_id,
+                message=prompt_to_process,
+                session_id=st.session_state.session_id,
+                chat_history=st.session_state.chat_history
+            )
+            ai_text = response.get("ai_response") or response.get("message") or "Đã ghi nhận yêu cầu của bạn!"
+            engine = response.get("llm_engine", "AI Engine")
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": ai_text,
+                "engine": engine
+            })
+        st.rerun()
 
 
 # TAB 3: DANH SÁCH ĐƠN HÀNG CỦA TÔI
@@ -889,8 +1168,23 @@ with sidebar_tabs[2]:
             details = o.get("details", {})
             dist_info = o.get("dist_info", {})
             
+            db_order = get_order_by_id(ord_id)
+            status_code = db_order.status if db_order else details.get("status_code", "PREPARING")
+            
+            est_mins = dist_info.get("estimated_delivery_minutes") or details.get("estimated_delivery_minutes") or 15
+            est_km = dist_info.get("estimated_distance_km") or 2.5
+
+            if status_code == "CANCELLED":
+                status_label = "🔴 **Đã hủy đơn**"
+            elif status_code == "COMPLETED":
+                status_label = "✅ **Đã giao thành công**"
+            elif status_code == "DELIVERING":
+                status_label = f"🛵 **Đang giao hàng xe máy** (Dự kiến **{est_mins} phút** • {est_km} km)"
+            else:
+                status_label = f"🟢 **Đang chuẩn bị món tại quán** (Dự kiến giao sau **{est_mins} phút** • {est_km} km)"
+
             with st.expander(f"📦 Đơn #{ord_id} • {details.get('total_amount_formatted', '0đ')}", expanded=(idx == 0)):
-                st.markdown(f"**Trạng thái:** 🟢 Đang chuẩn bị (Dự kiến {details.get('estimated_delivery', '20-30 phút')})")
+                st.markdown(f"**Trạng thái:** {status_label}")
                 st.write(f"**Khách hàng:** {details.get('customer_name')} ({details.get('phone_number')})")
                 st.write(f"**Địa chỉ giao:** {details.get('delivery_address')}")
                 st.write(f"**Thanh toán:** {details.get('payment_method')} • **Tổng:** {details.get('total_amount_formatted')}")

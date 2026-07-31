@@ -6,6 +6,7 @@ Data Source: ShopeeFood Full Details Dataset (shopeefood_full_details.json)
 import json
 import os
 import re
+import unicodedata
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -31,6 +32,30 @@ RESTAURANT_INFO_CACHE: Optional[RestaurantInfo] = None
 BASE_DIR = os.path.dirname(__file__)
 SHOPEEFOOD_FILE_PATH = os.path.join(BASE_DIR, "data", "shopeefood_full_details.json")
 ROOT_DATA_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "data", "shopeefood_full_details.json"))
+
+
+def normalize_text(text: str) -> str:
+    """Normalizes Vietnamese text for consistent food item searching and matching."""
+    if not text:
+        return ""
+    text = text.lower().strip()
+    # Normalize y/i vowel variants in Vietnamese food names (e.g. mì <-> mỳ)
+    text = re.sub(r'\bmì\b', 'mỳ', text)
+    text = text.replace('ì', 'ỳ').replace('í', 'ý').replace('ỉ', 'ỷ').replace('ĩ', 'ỹ').replace('ị', 'ỵ')
+    # Collapse multiple whitespaces
+    text = re.sub(r'\s+', ' ', text)
+    return text
+
+
+def remove_accents(text: str) -> str:
+    """Strips Vietnamese diacritics for fallback accent-insensitive matching."""
+    if not text:
+        return ""
+    text = normalize_text(text)
+    text = text.replace('đ', 'd').replace('Đ', 'D')
+    nfkd = unicodedata.normalize('NFKD', text)
+    unaccented = "".join([c for c in nfkd if not unicodedata.combining(c)])
+    return unaccented.replace('y', 'i')
 
 
 def _get_data_file_path() -> str:
@@ -96,8 +121,6 @@ def load_data_from_shopeefood() -> Tuple[Dict[str, MenuItem], Optional[Restauran
             is_active=True
         )
         branches.append(branch)
-
-
 
         for menu_cat in r.get("menu", []):
             cat_name = menu_cat.get("category", "Món ăn").strip()
@@ -184,10 +207,70 @@ def get_all_menu_items() -> List[MenuItem]:
 
 
 def get_menu_item_by_id(item_id: str) -> Optional[MenuItem]:
-    """Finds menu item by ID."""
+    """Finds menu item by ID or food name/keyword with robust fuzzy matching."""
     if not MENU_DB:
         load_menu()
-    return MENU_DB.get(item_id.upper())
+    if not item_id or not isinstance(item_id, str):
+        return None
+    
+    clean_id = item_id.strip()
+    # 1. Exact ID match (case-insensitive)
+    if clean_id.upper() in MENU_DB:
+        return MENU_DB[clean_id.upper()]
+    
+    clean_norm = normalize_text(clean_id)
+    clean_unaccent = remove_accents(clean_id)
+    
+    # 2. Exact Name match (case-insensitive & normalized)
+    for item in MENU_DB.values():
+        if normalize_text(item.name) == clean_norm:
+            return item
+
+    # 3. Stripped parenthetical match (e.g. "Mỳ thập cẩm (best seller)" -> "mỳ thập cẩm")
+    no_paren_clean = re.sub(r'\([^)]*\)', '', clean_norm).strip()
+    if no_paren_clean:
+        for item in MENU_DB.values():
+            item_no_paren = re.sub(r'\([^)]*\)', '', normalize_text(item.name)).strip()
+            if item_no_paren == no_paren_clean:
+                return item
+
+    # 4. Bidirectional Substring Name match
+    for item in MENU_DB.values():
+        item_norm = normalize_text(item.name)
+        if clean_norm in item_norm or item_norm in clean_norm:
+            return item
+
+    if no_paren_clean:
+        for item in MENU_DB.values():
+            item_no_paren = re.sub(r'\([^)]*\)', '', normalize_text(item.name)).strip()
+            if item_no_paren and (no_paren_clean in item_no_paren or item_no_paren in no_paren_clean):
+                return item
+
+    # 5. Exact/Substring Name match (unaccented fallback)
+    for item in MENU_DB.values():
+        if remove_accents(item.name) == clean_unaccent:
+            return item
+
+    for item in MENU_DB.values():
+        item_unaccent = remove_accents(item.name)
+        if clean_unaccent and (clean_unaccent in item_unaccent or item_unaccent in clean_unaccent):
+            return item
+
+    # 6. Word overlap / ingredient match (e.g. "trứng chiên" -> matches "Mỳ trứng ốp")
+    words = [w for w in clean_unaccent.split() if len(w) >= 3 and w not in ("cho", "mình", "thêm", "bán", "quán")]
+    if words:
+        best_match = None
+        max_words = 0
+        for item in MENU_DB.values():
+            item_text = remove_accents(f"{item.name} {item.description}")
+            matched_count = sum(1 for w in words if w in item_text)
+            if matched_count > max_words:
+                max_words = matched_count
+                best_match = item
+        if max_words >= 1 and best_match:
+            return best_match
+
+    return None
 
 
 def get_restaurant_data() -> Optional[RestaurantInfo]:
@@ -227,8 +310,8 @@ def update_cart_item(session_id: str, item_id: str, quantity: int, note: str = "
     if not item.is_available:
         return False, f"Món '{item.name}' hiện đã hết hàng.", cart
 
-    # Find existing item in cart
-    existing = next((i for i in cart.items if i.item_id.upper() == item_id.upper()), None)
+    # Find existing item in cart by item.id
+    existing = next((i for i in cart.items if i.item_id.upper() == item.id.upper()), None)
 
     if quantity <= 0:
         if existing:

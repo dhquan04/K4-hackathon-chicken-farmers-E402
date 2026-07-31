@@ -186,9 +186,6 @@ def estimate_delivery_distance(user_address: str, branch_id: Optional[str] = Non
     dest_lat = DEFAULT_CUSTOMER_LAT
     dest_lon = DEFAULT_CUSTOMER_LON
 
-
-
-
     import math
     dlat = math.radians(dest_lat - store_lat)
     dlon = math.radians(dest_lon - store_lon)
