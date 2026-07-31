@@ -122,6 +122,8 @@ def _merge_tool_kwargs(
 class FoodOrderingAgent:
     """LLM chọn tool từ tools.yaml, gọi workflow, rồi generate câu trả lời."""
 
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
+=======
     def __init__(
         self,
         api_key: Optional[str] = None,
