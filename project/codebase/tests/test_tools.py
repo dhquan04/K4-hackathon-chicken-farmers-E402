@@ -123,11 +123,16 @@ class TestFoodOrderingTools(unittest.TestCase):
         self.assertEqual(b_res["branch"]["branch_id"], "BRANCH01")
 
         # Estimate delivery distance
-        dist_res = estimate_delivery_distance(user_address="456 Đường Điện Biên Phủ, Quận Bình Thạnh")
+        dist_res = estimate_delivery_distance(user_address="Toà S2.06 Vinhomes Ocean Park, Gia Lâm, Hà Nội")
+
         self.assertEqual(dist_res["status"], "success")
         self.assertGreater(dist_res["estimated_distance_km"], 0)
         self.assertGreater(dist_res["shipping_fee"], 0)
-        self.assertIn("google.com/maps", dist_res["directions_url"])
+        self.assertTrue(
+            "openstreetmap.org" in dist_res["directions_url"] or "google.com/maps" in dist_res.get("google_directions_url", ""),
+            "Expected OSM or Google Maps direction URL"
+        )
+
 
 
 if __name__ == "__main__":

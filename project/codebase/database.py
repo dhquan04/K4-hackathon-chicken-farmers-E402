@@ -57,7 +57,7 @@ def parse_price(price_val) -> float:
 def load_data_from_shopeefood() -> Tuple[Dict[str, MenuItem], Optional[RestaurantInfo]]:
     """Loads food menu and restaurant branches from ShopeeFood dataset into MENU_DB and RESTAURANT_INFO_CACHE."""
     global MENU_DB, RESTAURANT_INFO_CACHE
-    
+
     file_path = _get_data_file_path()
     if not os.path.exists(file_path):
         return MENU_DB, RESTAURANT_INFO_CACHE
@@ -65,28 +65,39 @@ def load_data_from_shopeefood() -> Tuple[Dict[str, MenuItem], Optional[Restauran
     with open(file_path, "r", encoding="utf-8") as f:
         restaurants_data = json.load(f)
 
+    # Import OpenMap.vn geocoder dynamically
+    try:
+        from project.codebase.tools.get_store_location import geocode_address
+    except ImportError:
+        try:
+            from tools.get_store_location import geocode_address
+        except ImportError:
+            geocode_address = None
+
     MENU_DB.clear()
     branches: List[RestaurantBranch] = []
-    
+
     dish_idx = 1
     for r_idx, r in enumerate(restaurants_data, 1):
         res_name = r.get("name", f"Nhà hàng {r_idx}")
         res_addr = r.get("address", "Hà Nội")
         res_url = r.get("url", "https://shopeefood.vn")
-        
+
         branch_id = f"BRANCH{r_idx:02d}"
-        
+
         branch = RestaurantBranch(
             branch_id=branch_id,
             branch_name=res_name,
             address=res_addr,
-            latitude=20.9950 + (r_idx * 0.001),
-            longitude=105.9550 + (r_idx * 0.001),
+            latitude=20.9950,
+            longitude=105.9550,
             google_maps_url=f"https://www.google.com/maps/search/?api=1&query={res_addr}",
             embed_map_url=res_url,
             is_active=True
         )
         branches.append(branch)
+
+
 
         for menu_cat in r.get("menu", []):
             cat_name = menu_cat.get("category", "Món ăn").strip()
@@ -110,12 +121,14 @@ def load_data_from_shopeefood() -> Tuple[Dict[str, MenuItem], Optional[Restauran
                     category=cat_name,
                     price=price,
                     description=desc if desc else f"{d_name} tại {res_name}",
+                    branch_id=branch_id,
                     is_vegetarian=is_veg,
                     is_spicy=is_spicy,
                     allergens=[],
                     is_available=is_avail
                 )
                 MENU_DB[item_id] = menu_item
+
                 dish_idx += 1
 
     RESTAURANT_INFO_CACHE = RestaurantInfo(
