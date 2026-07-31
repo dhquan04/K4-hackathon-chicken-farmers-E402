@@ -8,13 +8,22 @@ import re
 from datetime import datetime
 from typing import Dict, Optional
 
-from project.codebase.database import (
-    calculate_totals,
-    clear_cart,
-    get_cart,
-    save_order,
-)
-from project.codebase.schemas import CustomerInfo, Order
+try:
+    from project.codebase.database import (
+        calculate_totals,
+        clear_cart,
+        get_cart,
+        save_order,
+    )
+    from project.codebase.schemas import CustomerInfo, Order
+except ImportError:
+    from database import (
+        calculate_totals,
+        clear_cart,
+        get_cart,
+        save_order,
+    )
+    from schemas import CustomerInfo, Order
 
 
 def create_order(
@@ -95,14 +104,21 @@ def create_order(
         note=note or ""
     )
 
-    # Snapshot items in cart
+    # Snapshot items in cart and convert to dicts to prevent Pydantic class identity mismatches
     order_items = list(cart.items)
+    items_dicts = [
+        item.model_dump() if hasattr(item, "model_dump") else (item.dict() if hasattr(item, "dict") else item)
+        for item in order_items
+    ]
+    customer_dict = (
+        customer_info.model_dump() if hasattr(customer_info, "model_dump") else (customer_info.dict() if hasattr(customer_info, "dict") else customer_info)
+    )
 
     order_obj = Order(
         order_id=order_id,
         session_id=session_id,
-        customer=customer_info,
-        items=order_items,
+        customer=customer_dict,
+        items=items_dicts,
         subtotal=totals["subtotal"],
         shipping_fee=totals["shipping_fee"],
         discount_amount=totals["discount_amount"],

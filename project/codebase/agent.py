@@ -36,9 +36,9 @@ def load_system_prompt() -> str:
 class FoodOrderingAgent:
     """Agent class coordinating user messages, LLM tool calls, and workflow execution."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-3.5-turbo"):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
-        self.model = model
+        self.model = model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
         self.system_prompt = load_system_prompt()
 
     def process_message(self, user_id: str, message: str, session_id: Optional[str] = None, tool_kwargs: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:

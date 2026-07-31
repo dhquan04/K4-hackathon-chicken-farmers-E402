@@ -12,6 +12,7 @@ class MenuItem(BaseModel):
     category: str
     price: float
     description: str
+    branch_id: Optional[str] = None
     is_vegetarian: bool = False
     is_spicy: bool = False
     allergens: List[str] = Field(default_factory=list)

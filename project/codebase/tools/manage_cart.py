@@ -4,11 +4,20 @@ Quản lý giỏ hàng của người dùng (thêm, cập nhật, xóa, xem gi�
 """
 
 from typing import Dict, Optional
-from project.codebase.database import (
-    clear_cart as db_clear_cart,
-    get_cart,
-    update_cart_item,
-)
+try:
+    from project.codebase.database import (
+        clear_cart as db_clear_cart,
+        get_cart,
+        get_menu_item_by_id,
+        update_cart_item,
+    )
+except ImportError:
+    from database import (
+        clear_cart as db_clear_cart,
+        get_cart,
+        get_menu_item_by_id,
+        update_cart_item,
+    )
 
 
 def add_to_cart(session_id: str, item_id: str, quantity: int = 1, note: str = "") -> Dict:
@@ -30,9 +39,12 @@ def add_to_cart(session_id: str, item_id: str, quantity: int = 1, note: str = ""
             "message": "Số lượng thêm vào phải lớn hơn 0."
         }
 
-    # Fetch existing item quantity if any
+    # Fetch existing item quantity if any using resolved item.id
+    item = get_menu_item_by_id(item_id)
+    target_id = item.id if item else item_id
+
     cart = get_cart(session_id)
-    existing = next((i for i in cart.items if i.item_id == item_id), None)
+    existing = next((i for i in cart.items if i.item_id.upper() == target_id.upper()), None)
     new_quantity = existing.quantity + quantity if existing else quantity
 
     success, msg, updated_cart = update_cart_item(session_id, item_id, new_quantity, note)

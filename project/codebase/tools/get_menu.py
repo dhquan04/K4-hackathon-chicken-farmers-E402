@@ -4,7 +4,10 @@ Tra cứu danh sách thực đơn món ăn toàn bộ hoặc theo danh mục.
 """
 
 from typing import Dict, List, Optional
-from project.codebase.database import get_all_menu_items
+try:
+    from project.codebase.database import get_all_menu_items
+except ImportError:
+    from database import get_all_menu_items
 
 
 def get_menu(category: Optional[str] = None) -> Dict:
@@ -55,10 +58,26 @@ def get_menu(category: Optional[str] = None) -> Dict:
         for item in filtered_items
     ]
 
+    vouchers_info = []
+    try:
+        from project.codebase.database import VOUCHERS_DB
+        vouchers_info = [
+            {
+                "code": v.code,
+                "discount": f"{int(v.discount_percentage * 100)}%" if v.discount_percentage > 0 else f"Tối đa {v.max_discount_amount:,.0f}đ",
+                "max_discount": f"{v.max_discount_amount:,.0f}đ",
+                "min_order": f"{v.min_order_amount:,.0f}đ"
+            }
+            for v in VOUCHERS_DB.values()
+        ]
+    except Exception:
+        pass
+
     return {
         "status": "success",
         "category_filter": category or "Tất cả",
         "total_items": len(formatted_items),
         "available_categories": categories_available,
+        "available_vouchers": vouchers_info,
         "items": formatted_items
     }

@@ -4,7 +4,10 @@ Tính toán chi phí đơn hàng (tiền món, phí giao hàng, giảm giá vouc
 """
 
 from typing import Dict, Optional
-from project.codebase.database import calculate_totals, get_cart
+try:
+    from project.codebase.database import calculate_totals, get_cart
+except ImportError:
+    from database import calculate_totals, get_cart
 
 
 def calculate_order(
@@ -49,11 +52,13 @@ def calculate_order(
         "subtotal_formatted": f"{totals['subtotal']:,.0f}đ",
         "shipping_distance_km": shipping_distance_km,
         "shipping_fee": totals["shipping_fee"],
+        "delivery_fee": totals["shipping_fee"],
         "shipping_fee_formatted": f"{totals['shipping_fee']:,.0f}đ",
         "voucher_applied": voucher_code.strip().upper() if voucher_code else None,
         "voucher_msg": totals["voucher_msg"],
         "discount_amount": totals["discount_amount"],
         "discount_amount_formatted": f"{totals['discount_amount']:,.0f}đ",
         "total_amount": totals["total_amount"],
+        "total": totals["total_amount"],
         "total_amount_formatted": f"{totals['total_amount']:,.0f}đ"
     }

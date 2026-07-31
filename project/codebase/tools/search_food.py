@@ -4,7 +4,10 @@ Tìm kiếm món ăn theo từ khóa, mức giá, ăn chay hoặc độ cay.
 """
 
 from typing import Dict, List, Optional
-from project.codebase.database import get_all_menu_items
+try:
+    from project.codebase.database import get_all_menu_items, normalize_text, remove_accents
+except ImportError:
+    from database import get_all_menu_items, normalize_text, remove_accents
 
 
 def search_food(
@@ -26,17 +29,32 @@ def search_food(
         Dict: Danh sách các món ăn thỏa mãn tiêu chí tìm kiếm.
     """
     all_items = get_all_menu_items()
-    query_clean = query.strip().lower()
+    query_clean = (query or "").strip()
+    q_norm = normalize_text(query_clean)
+    q_unaccent = remove_accents(query_clean)
 
     results = []
     for item in all_items:
-        # Match name, category, or description
-        match_query = (
-            query_clean in item.name.lower() or
-            query_clean in item.category.lower() or
-            query_clean in item.description.lower()
-        )
-        if not match_query and query_clean != "":
+        name_norm = normalize_text(item.name)
+        cat_norm = normalize_text(item.category)
+        desc_norm = normalize_text(item.description or "")
+
+        match_query = False
+        if not query_clean:
+            match_query = True
+        else:
+            match_query = (
+                q_norm in name_norm or
+                q_norm in cat_norm or
+                q_norm in desc_norm or
+                (bool(q_unaccent) and (
+                    q_unaccent in remove_accents(item.name) or
+                    q_unaccent in remove_accents(item.category) or
+                    q_unaccent in remove_accents(item.description or "")
+                ))
+            )
+
+        if not match_query:
             continue
 
         # Match max price

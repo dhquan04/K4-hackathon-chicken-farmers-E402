@@ -122,12 +122,30 @@ class TestFoodOrderingTools(unittest.TestCase):
         self.assertEqual(b_res["status"], "success")
         self.assertEqual(b_res["branch"]["branch_id"], "BRANCH01")
 
-        # Estimate delivery distance
-        dist_res = estimate_delivery_distance(user_address="456 Đường Điện Biên Phủ, Quận Bình Thạnh")
+        # Estimate delivery distance (new_code: real geocoding + routing)
+        dist_res = estimate_delivery_distance(user_address="Toà S2.06 Vinhomes Ocean Park, Gia Lâm, Hà Nội")
+
         self.assertEqual(dist_res["status"], "success")
         self.assertGreater(dist_res["estimated_distance_km"], 0)
         self.assertGreater(dist_res["shipping_fee"], 0)
-        self.assertIn("google.com/maps", dist_res["directions_url"])
+        self.assertTrue(
+            "openstreetmap.org" in dist_res["directions_url"] or "google.com/maps" in dist_res.get("google_directions_url", ""),
+            "Expected OSM or Google Maps direction URL"
+        )
+
+    def test_vietnamese_spelling_variants(self):
+        """Test that 'đặt mì lạp sườn' correctly matches 'Mỳ lạp sườn' (FOOD004)."""
+        from project.codebase.workflow import handle_message
+        
+        # Test ordering 'đặt mì lạp sườn'
+        res = handle_message(self.session_id, "đặt mì lạp sườn")
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["tool"], "manage_cart")
+        self.assertIn("Mỳ lạp sườn", res["message"])
+        items = res["data"]["cart"]["items"]
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["name"], "Mỳ lạp sườn")
+        self.assertEqual(items[0]["item_id"], "FOOD004")
 
 
 if __name__ == "__main__":

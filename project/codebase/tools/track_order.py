@@ -4,7 +4,10 @@ Tra cứu tiến độ đơn hàng và xử lý yêu cầu hủy đơn.
 """
 
 from typing import Dict, Optional
-from project.codebase.database import get_order_by_id
+try:
+    from project.codebase.database import get_order_by_id
+except ImportError:
+    from database import get_order_by_id
 
 
 def track_order(order_id: str) -> Dict:
