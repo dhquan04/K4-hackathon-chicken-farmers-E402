@@ -67,3 +67,21 @@ class Order(BaseModel):
     status: str = "PREPARING"  # PENDING, PREPARING, DELIVERING, COMPLETED, CANCELLED
     created_at: str
     voucher_code: Optional[str] = None
+
+
+class RestaurantBranch(BaseModel):
+    branch_id: str
+    branch_name: str
+    address: str
+    latitude: float
+    longitude: float
+    google_maps_url: str
+    embed_map_url: str
+    is_active: bool = True
+
+
+class RestaurantInfo(BaseModel):
+    restaurant_name: str
+    hotline: str
+    opening_hours: str
+    branches: List[RestaurantBranch] = Field(default_factory=list)

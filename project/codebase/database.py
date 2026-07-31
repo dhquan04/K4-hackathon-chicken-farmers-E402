@@ -7,15 +7,26 @@ import os
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from project.codebase.schemas import Cart, CartItem, CustomerInfo, MenuItem, Order, Voucher
+from project.codebase.schemas import (
+    Cart,
+    CartItem,
+    CustomerInfo,
+    MenuItem,
+    Order,
+    RestaurantBranch,
+    RestaurantInfo,
+    Voucher,
+)
 
 # Global In-Memory Storage
 MENU_DB: Dict[str, MenuItem] = {}
 CARTS_DB: Dict[str, Cart] = {}
 ORDERS_DB: Dict[str, Order] = {}
 VOUCHERS_DB: Dict[str, Voucher] = {}
+RESTAURANT_INFO_CACHE: Optional[RestaurantInfo] = None
 
 MENU_FILE_PATH = os.path.join(os.path.dirname(__file__), "data", "menu.json")
+RESTAURANT_FILE_PATH = os.path.join(os.path.dirname(__file__), "data", "restaurant.json")
 
 
 def load_menu() -> Dict[str, MenuItem]:
@@ -30,6 +41,18 @@ def load_menu() -> Dict[str, MenuItem]:
             item = MenuItem(**data)
             MENU_DB[item.id] = item
     return MENU_DB
+
+
+def load_restaurant_info() -> Optional[RestaurantInfo]:
+    """Loads restaurant and branch info from JSON file."""
+    global RESTAURANT_INFO_CACHE
+    if not os.path.exists(RESTAURANT_FILE_PATH):
+        return None
+
+    with open(RESTAURANT_FILE_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        RESTAURANT_INFO_CACHE = RestaurantInfo(**data)
+    return RESTAURANT_INFO_CACHE
 
 
 def init_vouchers() -> Dict[str, Voucher]:
@@ -47,6 +70,7 @@ def init_vouchers() -> Dict[str, Voucher]:
 
 # Initialize data store on import
 load_menu()
+load_restaurant_info()
 init_vouchers()
 
 
@@ -62,6 +86,25 @@ def get_menu_item_by_id(item_id: str) -> Optional[MenuItem]:
     if not MENU_DB:
         load_menu()
     return MENU_DB.get(item_id)
+
+
+def get_restaurant_data() -> Optional[RestaurantInfo]:
+    """Gets restaurant info and branch details."""
+    global RESTAURANT_INFO_CACHE
+    if not RESTAURANT_INFO_CACHE:
+        load_restaurant_info()
+    return RESTAURANT_INFO_CACHE
+
+
+def get_branch_by_id(branch_id: str) -> Optional[RestaurantBranch]:
+    """Finds a specific branch by ID."""
+    info = get_restaurant_data()
+    if not info:
+        return None
+    for b in info.branches:
+        if b.branch_id.upper() == branch_id.strip().upper():
+            return b
+    return None
 
 
 def get_cart(session_id: str) -> Cart:

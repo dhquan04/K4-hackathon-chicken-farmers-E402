@@ -14,6 +14,10 @@ from project.codebase.tools.manage_cart import (
 from project.codebase.tools.calculate_order import calculate_order
 from project.codebase.tools.create_order import create_order
 from project.codebase.tools.track_order import track_order, cancel_order
+from project.codebase.tools.get_store_location import (
+    get_store_location,
+    estimate_delivery_distance,
+)
 
 __all__ = [
     "get_menu",
@@ -27,4 +31,6 @@ __all__ = [
     "create_order",
     "track_order",
     "cancel_order",
+    "get_store_location",
+    "estimate_delivery_distance",
 ]

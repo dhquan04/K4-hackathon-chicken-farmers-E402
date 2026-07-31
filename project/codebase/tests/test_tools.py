@@ -9,7 +9,9 @@ from project.codebase.tools import (
     cancel_order,
     clear_cart,
     create_order,
+    estimate_delivery_distance,
     get_menu,
+    get_store_location,
     remove_from_cart,
     search_food,
     track_order,
@@ -108,6 +110,24 @@ class TestFoodOrderingTools(unittest.TestCase):
         # Re-track order
         track_res2 = track_order(order_id)
         self.assertEqual(track_res2["order"]["status_code"], "CANCELLED")
+
+    def test_store_location_and_distance(self):
+        # Fetch store location
+        loc_res = get_store_location()
+        self.assertEqual(loc_res["status"], "success")
+        self.assertGreater(loc_res["total_branches"], 0)
+
+        # Fetch specific branch
+        b_res = get_store_location(branch_id="BRANCH01")
+        self.assertEqual(b_res["status"], "success")
+        self.assertEqual(b_res["branch"]["branch_id"], "BRANCH01")
+
+        # Estimate delivery distance
+        dist_res = estimate_delivery_distance(user_address="456 Đường Điện Biên Phủ, Quận Bình Thạnh")
+        self.assertEqual(dist_res["status"], "success")
+        self.assertGreater(dist_res["estimated_distance_km"], 0)
+        self.assertGreater(dist_res["shipping_fee"], 0)
+        self.assertIn("google.com/maps", dist_res["directions_url"])
 
 
 if __name__ == "__main__":
